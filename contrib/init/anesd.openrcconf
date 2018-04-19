@@ -1,0 +1,26 @@
+# /etc/conf.d/anesd: config file for /etc/init.d/anesd
+
+# Config file location
+#BITCOIND_CONFIGFILE="/etc/anes/anes.conf"
+
+# What directory to write pidfile to?  (created and owned by $BITCOIND_USER)
+#BITCOIND_PIDDIR="/var/run/anesd"
+
+# What filename to give the pidfile
+#BITCOIND_PIDFILE="${BITCOIND_PIDDIR}/anesd.pid"
+
+# Where to write anesd data (be mindful that the blockchain is large)
+#BITCOIND_DATADIR="/var/lib/anesd"
+
+# User and group to own anesd process
+#BITCOIND_USER="anes"
+#BITCOIND_GROUP="anes"
+
+# Path to anesd executable
+#BITCOIND_BIN="/usr/bin/anesd"
+
+# Nice value to run anesd under
+#BITCOIND_NICE=0
+
+# Additional options (avoid -conf and -datadir, use flags above)
+BITCOIND_OPTS=""

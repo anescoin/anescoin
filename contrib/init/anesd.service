@@ -1,0 +1,26 @@
+[Unit]
+Description=ANES's distributed currency daemon
+After=network.target
+
+[Service]
+User=anes
+Group=anes
+
+Type=forking
+PIDFile=/var/lib/anesd/anesd.pid
+
+ExecStart=/usr/bin/anesd -daemon -pid=/var/lib/anesd/anesd.pid \
+          -conf=/etc/anes/anes.conf -datadir=/var/lib/anesd
+
+ExecStop=-/usr/bin/anes-cli -conf=/etc/anes/anes.conf \
+         -datadir=/var/lib/anesd stop
+
+Restart=always
+PrivateTmp=true
+TimeoutStopSec=60s
+TimeoutStartSec=2s
+StartLimitInterval=120s
+StartLimitBurst=5
+
+[Install]
+WantedBy=multi-user.target
