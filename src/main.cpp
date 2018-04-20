@@ -1839,28 +1839,27 @@ bool CheckInputs(const CTransaction& tx, CValidationState& state, const CCoinsVi
 					vector<CTxDestination> addresses;
 					int nRequired;
 					CWalletTx& wtx = pwalletMain->mapWallet[prevout.hash];
-					if (!ExtractDestinations(wtx.vout[prevout.n].scriptPubKey, type, addresses, nRequired)) {
-						return false;
-					}
-					bool IsHolding = (tx.vout.size() <= 2 && strcmp(GetTxnOutputType(type), "holding") == 0);
-					if(IsHolding) {
-						const CScript& script1 = wtx.vout[prevout.n].scriptPubKey;
-						CScript::const_iterator pc1 = script1.begin();
-						opcodetype opcode1;
-						vector<unsigned char> vch1;
-						if(!script1.GetOp(pc1, opcode1, vch1)) {
-							return state.DoS(100, error("CheckInputs() : holding script read fail"), REJECT_INVALID, "bad-holding-invalid-script");
-						}
-						CScriptNum WaitBlock(vch1, false, 5);
-						int nWaitBlock = WaitBlock.getint();
-						BlockMap::iterator mi = mapBlockIndex.find(wtx.hashBlock);
-						if (mi == mapBlockIndex.end())
-							return state.DoS(100, error("CheckInputs() : holding find block fail"), REJECT_INVALID, "bad-holding-invalid-script");
-						const CBlockIndex* pindex = (*mi).second;
-						if(nSpendHeight < pindex->nHeight + nWaitBlock) {
-							return state.Invalid(
-								error("CheckInputs() : tried to spend holded coin at height %d, wait target %d", nSpendHeight, pindex->nHeight + nWaitBlock),
-								REJECT_INVALID, "bad-txns-holding-spend-of-holded");
+					if (ExtractDestinations(wtx.vout[prevout.n].scriptPubKey, type, addresses, nRequired)) {
+						bool IsHolding = (tx.vout.size() <= 2 && strcmp(GetTxnOutputType(type), "holding") == 0);
+						if(IsHolding) {
+							const CScript& script1 = wtx.vout[prevout.n].scriptPubKey;
+							CScript::const_iterator pc1 = script1.begin();
+							opcodetype opcode1;
+							vector<unsigned char> vch1;
+							if(!script1.GetOp(pc1, opcode1, vch1)) {
+								return state.DoS(100, error("CheckInputs() : holding script read fail"), REJECT_INVALID, "bad-holding-invalid-script");
+							}
+							CScriptNum WaitBlock(vch1, false, 5);
+							int nWaitBlock = WaitBlock.getint();
+							BlockMap::iterator mi = mapBlockIndex.find(wtx.hashBlock);
+							if (mi == mapBlockIndex.end())
+								return state.DoS(100, error("CheckInputs() : holding find block fail"), REJECT_INVALID, "bad-holding-invalid-script");
+							const CBlockIndex* pindex = (*mi).second;
+							if(nSpendHeight < pindex->nHeight + nWaitBlock) {
+								return state.Invalid(
+									error("CheckInputs() : tried to spend holded coin at height %d, wait target %d", nSpendHeight, pindex->nHeight + nWaitBlock),
+									REJECT_INVALID, "bad-txns-holding-spend-of-holded");
+							}
 						}
 					}
 				}
@@ -1878,29 +1877,28 @@ bool CheckInputs(const CTransaction& tx, CValidationState& state, const CCoinsVi
 			txnouttype type;
 			vector<CTxDestination> addresses;
 			int nRequired;
-			if (!ExtractDestinations(tx.vout[0].scriptPubKey, type, addresses, nRequired)) {
-				return false;
-			}
-			bool IsHolding = (tx.vout.size() <= 2 && strcmp(GetTxnOutputType(type), "holding") == 0);
-			if(IsHolding) {
-				const CScript& script1 = tx.vout[0].scriptPubKey;
-				CScript::const_iterator pc1 = script1.begin();
-				opcodetype opcode1;
-				vector<unsigned char> vch1;
-				if(!script1.GetOp(pc1, opcode1, vch1)) {
-					return state.DoS(100, error("CheckInputs() : holding script read fail"), REJECT_INVALID, "bad-holding-invalid-script");
+			if (ExtractDestinations(tx.vout[0].scriptPubKey, type, addresses, nRequired)) {
+				bool IsHolding = (tx.vout.size() <= 2 && strcmp(GetTxnOutputType(type), "holding") == 0);
+				if(IsHolding) {
+					const CScript& script1 = tx.vout[0].scriptPubKey;
+					CScript::const_iterator pc1 = script1.begin();
+					opcodetype opcode1;
+					vector<unsigned char> vch1;
+					if(!script1.GetOp(pc1, opcode1, vch1)) {
+						return state.DoS(100, error("CheckInputs() : holding script read fail"), REJECT_INVALID, "bad-holding-invalid-script");
+					}
+					CScriptNum WaitBlock(vch1, false, 5);
+					int nLevel = Params().GetHoldingLevelFromWaitBlock(WaitBlock.getint());
+					if(nLevel == 0) {
+						return state.DoS(100, error("CheckInputs() : holding level invalid"), REJECT_INVALID, "bad-holding-invalid-level");
+					}
+					CAmount nValue = Params().HoldingValue();
+					CAmount nReturnValue = Params().GetHoldingOutput(nLevel, nValue);
+					if(tx.vout[0].nValue != nReturnValue) {
+						return state.DoS(100, error("CheckInputs() : holding invalid amount"), REJECT_INVALID, "bad-holding-invalid-amount");
+					}
+					OutValue = tx.GetValueOut() - nReturnValue + nValue;
 				}
-				CScriptNum WaitBlock(vch1, false, 5);
-				int nLevel = Params().GetHoldingLevelFromWaitBlock(WaitBlock.getint());
-				if(nLevel == 0) {
-					return state.DoS(100, error("CheckInputs() : holding level invalid"), REJECT_INVALID, "bad-holding-invalid-level");
-				}
-				CAmount nValue = Params().HoldingValue();
-				CAmount nReturnValue = Params().GetHoldingOutput(nLevel, nValue);
-				if(tx.vout[0].nValue != nReturnValue) {
-					return state.DoS(100, error("CheckInputs() : holding invalid amount"), REJECT_INVALID, "bad-holding-invalid-amount");
-				}
-				OutValue = tx.GetValueOut() - nReturnValue + nValue;
 			}
 		}
 		if (!tx.IsCoinStake()) {
