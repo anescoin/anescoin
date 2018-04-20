@@ -241,6 +241,7 @@ bool ExtractDestination(const CScript& scriptPubKey, txnouttype& typeRet, CTxDes
     if (whichType == TX_PUBKEY)
     {
         CPubKey pubKey(vSolutions[0]);
+		LogPrintf
         if (!pubKey.IsValid())
             return false;
 

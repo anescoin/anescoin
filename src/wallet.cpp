@@ -1141,9 +1141,8 @@ CAmount CWallet::GetHoldingBalance() const
             const CWalletTx* pcoin = &(*it).second;
 
 			txnouttype type;
-			vector<CTxDestination> addresses;
-			int nRequired;
-			if (ExtractDestinations(pcoin->vout[0].scriptPubKey, type, addresses, nRequired)) {
+			CTxDestination address;
+			if (ExtractDestination(pcoin->vout[0].scriptPubKey, type, address)) {
 				bool IsHolding = (pcoin->vout.size() <= 2 && strcmp(GetTxnOutputType(type), "holding") == 0);
 				if(IsHolding) {
 					const CScript& script1 = pcoin->vout[0].scriptPubKey;
@@ -1249,36 +1248,6 @@ void CWallet::AvailableCoins(vector<COutput>& vCoins, bool fOnlyConfirmed, const
             if ((pcoin->IsCoinBase() || pcoin->IsCoinStake()) && pcoin->GetBlocksToMaturity() > 0)
                 continue;
 
-			txnouttype type;
-			vector<CTxDestination> addresses;
-			int nRequired;
-			if (!ExtractDestinations(pcoin->vout[0].scriptPubKey, type, addresses, nRequired)) {
-				continue;
-			}
-			bool IsHolding = (pcoin->vout.size() <= 2 && strcmp(GetTxnOutputType(type), "holding") == 0);
-			bool PassHoldingZero = false;
-			if(IsHolding) {
-				const CScript& script1 = pcoin->vout[0].scriptPubKey;
-				CScript::const_iterator pc1 = script1.begin();
-				opcodetype opcode1;
-				vector<unsigned char> vch1;
-				if(!script1.GetOp(pc1, opcode1, vch1)) {
-					continue;
-				}
-				CScriptNum WaitBlock(vch1, false, 5);
-				int nWaitBlock = WaitBlock.getint();
-				BlockMap::iterator mi = mapBlockIndex.find(pcoin->hashBlock);
-				int nBlockHeight = 0;
-				if (mi != mapBlockIndex.end()) {
-					nBlockHeight = mi->second->nHeight;
-				} else {
-					nBlockHeight = chainActive.Height();
-				}
-				if(chainActive.Height() < nBlockHeight + nWaitBlock) {
-					PassHoldingZero = true;
-				}
-			}
-
             int nDepth = pcoin->GetDepthInMainChain(false);
             // do not use IX for inputs that have less then 6 blockchain confirmations
             if (fUseIX && nDepth < 6)
@@ -1288,6 +1257,34 @@ void CWallet::AvailableCoins(vector<COutput>& vCoins, bool fOnlyConfirmed, const
             // It's possible for these to be conflicted via ancestors which we may never be able to detect
             if (nDepth == 0 && !pcoin->InMempool())
                 continue;
+
+			txnouttype type;
+			CTxDestination address;
+			bool PassHoldingZero = false;
+			if (ExtractDestination(pcoin->vout[0].scriptPubKey, type, address)) {
+				bool IsHolding = (pcoin->vout.size() <= 2 && strcmp(GetTxnOutputType(type), "holding") == 0);
+				if(IsHolding) {
+					const CScript& script1 = pcoin->vout[0].scriptPubKey;
+					CScript::const_iterator pc1 = script1.begin();
+					opcodetype opcode1;
+					vector<unsigned char> vch1;
+					if(!script1.GetOp(pc1, opcode1, vch1)) {
+						continue;
+					}
+					CScriptNum WaitBlock(vch1, false, 5);
+					int nWaitBlock = WaitBlock.getint();
+					BlockMap::iterator mi = mapBlockIndex.find(pcoin->hashBlock);
+					int nBlockHeight = 0;
+					if (mi != mapBlockIndex.end()) {
+						nBlockHeight = mi->second->nHeight;
+					} else {
+						nBlockHeight = chainActive.Height();
+					}
+					if(chainActive.Height() < nBlockHeight + nWaitBlock) {
+						PassHoldingZero = true;
+					}
+				}
+			}
 
             for (unsigned int i = 0; i < pcoin->vout.size(); i++) {
 				if(PassHoldingZero && i == 0) {

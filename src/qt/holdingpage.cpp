@@ -139,9 +139,8 @@ void HoldingPage::updateHoldingList()
 				continue;
 			}
 			txnouttype type;
-			vector<CTxDestination> addresses;
-			int nRequired;
-			if (ExtractDestinations(wtx.vout[0].scriptPubKey, type, addresses, nRequired) && IsMine(*wallet, addresses[0])) {
+			CTxDestination address;
+			if (ExtractDestination(wtx.vout[0].scriptPubKey, type, address) && IsMine(*wallet, address)) {
 				bool IsHolding = (strcmp(GetTxnOutputType(type), "holding") == 0);
 				if(IsHolding) {
 					BlockMap::iterator mi = mapBlockIndex.find(wtx.hashBlock);

@@ -1836,10 +1836,9 @@ bool CheckInputs(const CTransaction& tx, CValidationState& state, const CCoinsVi
             } else {
 				if (pwalletMain->mapWallet.count(prevout.hash)) {
 					txnouttype type;
-					vector<CTxDestination> addresses;
-					int nRequired;
+					CTxDestination address;
 					CWalletTx& wtx = pwalletMain->mapWallet[prevout.hash];
-					if (ExtractDestinations(wtx.vout[prevout.n].scriptPubKey, type, addresses, nRequired)) {
+					if (ExtractDestination(wtx.vout[prevout.n].scriptPubKey, type, address)) {
 						bool IsHolding = (tx.vout.size() <= 2 && strcmp(GetTxnOutputType(type), "holding") == 0);
 						if(IsHolding) {
 							const CScript& script1 = wtx.vout[prevout.n].scriptPubKey;
@@ -1875,9 +1874,8 @@ bool CheckInputs(const CTransaction& tx, CValidationState& state, const CCoinsVi
 		CAmount OutValue = tx.GetValueOut();
 		if(true) {
 			txnouttype type;
-			vector<CTxDestination> addresses;
-			int nRequired;
-			if (ExtractDestinations(tx.vout[0].scriptPubKey, type, addresses, nRequired)) {
+			CTxDestination address;
+			if (ExtractDestination(tx.vout[0].scriptPubKey, type, address)) {
 				bool IsHolding = (tx.vout.size() <= 2 && strcmp(GetTxnOutputType(type), "holding") == 0);
 				if(IsHolding) {
 					const CScript& script1 = tx.vout[0].scriptPubKey;
